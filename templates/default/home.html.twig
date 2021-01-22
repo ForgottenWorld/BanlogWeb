@@ -1,0 +1,509 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+	{{ parent() }}
+	<style>
+		{% if darkMode %}
+			body {
+				background: #0F0F0F;
+			}
+			
+			.fw_title {
+				color: #fff;
+			}
+			
+			.fw_subtitle {
+				color: #fff;
+			}
+		{% else %}
+			body {
+				background: #FFF;
+			}
+			
+			.fw_subtitle {
+				color: #7d7c83;
+			}
+		{% endif %}
+		body {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.fw_title {
+			width: 100vw;
+			text-align: center;
+			margin-top: 5rem!important;
+			font-size: 3rem;
+		}
+
+		.fw_subtitle {
+			width: 100vw;
+			text-align: center;
+			margin-top: 1rem!important;
+			font-size: 1.5rem;
+			font-weight: 300;
+		}
+
+		.flex_column {
+			display: flex!important;
+			justify-content: center;
+		}
+
+		.ban_table {
+			margin-top: 3rem!important;
+		}
+		
+		#searchUser {
+			margin-top: 3rem;
+		}
+		
+		.clickable-tr :hover{
+			cursor: pointer!important;
+		}
+	</style>
+{% endblock %}
+
+{% block javascripts %}
+	{{parent()}}
+	<script>
+		$(document).on("click", "#validateNickname", function() {
+			$("#banNickname").addClass("loading");
+			
+			let nickname = $("input[name=nickname]").val();
+			
+			if(nickname.length == 0) {
+				alert('Valorizzare il campo nickname');
+				return;
+			}
+			
+			let ajaxUrl = "{{ path('ban_checkUuid') }}";
+			let ajaxData = {
+				nickname: nickname
+			};
+			$.ajax({
+				url : ajaxUrl,
+				type : 'POST',
+				data : ajaxData,
+				async: true,
+				success : function(data) {
+					$("#banNickname").removeClass("loading");
+					if(data !== false) {
+						$("#banNickname").css("border", "1 px solid green");
+						$("#banNicknameLabel").html("<span style='color:green'>Nome utente corretto!</span>");
+						$("input[name=is_name_valid]").val(true);
+					} else {
+						$("#banNickname").css("border", "1 px solid red");
+						$("#banNicknameLabel").html("<span style='color:red'>Nome utente non valido!</span>");
+						$("input[name=is_name_valid]").val("");
+					}
+				},
+				error : function(request,error)
+				{
+				}
+			});
+		});
+		
+		$(document).on("submit", "#newBanForm", function(event){
+			let isNickValid = $("input[name=is_name_valid]").val();
+			
+			if(isNickValid === "") {
+				alert('Validare il nick prima di proseguire!');
+				event.preventDefault();
+				return;
+			}
+			
+			let isPermaban = $("input[name=is_perma]").prop("checked");
+			if(!isPermaban) {
+				let months = $("input[name=end_date_months]").val();
+				let days = $("input[name=end_date_days]").val();
+				let hours = $("input[name=end_date_hours]").val();
+				let minutes = $("input[name=end_date_minutes]").val();
+				
+				if(months === "" && days === "" && hours === "" && minutes === "") {
+					alert('Se non spunti permaban devi specificare una durata');
+					event.preventDefault();
+				}
+			}
+			
+		});
+		
+		$(document).on("click", ".clickable-tr", function() {
+			let idBan = $(this).data("idban");
+			location.assign("{{ path('ban_view') }}?id=" + idBan);
+		});
+		
+		$(document).ready(function(){
+		
+			$("#add_ban").click(function(){
+				$(".new_ban_modal").modal('show');
+			});
+			
+			$("#add_server").click(function(){
+				$(".new_server_modal").modal('show');
+			});
+			
+			$("#editUser").click(function(){
+				$(".edit_user_modal").modal('show');
+			});
+			
+			$(".unban_button").click(function(event) {
+				event.stopPropagation();
+				let banId = $(this).data("idban");
+				location.assign('{{ path('ban_delete')}}?ban_id=' + banId);
+			});
+			
+			$("#newPasswordForm").submit(function(event) {
+				let newPassword = $("input[name=new_password]").val();
+				let confirmNewPassword = $("input[name=confirm_password]").val();
+				
+				if(newPassword != confirmNewPassword) {
+					event.preventDefault();
+					alert('Le due password devono coincidere!');
+				}
+			});	
+			
+			$(".is_perma").checkbox({
+				onChange: function(){
+					let checked = this.checked;
+					if(checked) {
+						$(".end_date").slideUp(400);
+					} else {
+						$(".end_date").slideDown(400);
+					}
+				}
+			});
+
+		});
+	</script>
+{% endblock %}
+
+{% block body %}
+
+	{% if is_granted('ROLE_USER') %}
+		<!-- Modale per modifica profilo -->
+		<div class="ui {% if darkMode %}inverted{% endif %} modal edit_user_modal">
+			<i class="close icon"></i>
+			<div class="header">
+				Modifica del profilo
+			</div>
+			<div class="content">
+				<div class="ui raised segment">
+					<form id="newPasswordForm" class="ui form" method="POST" action="{{ path('app_change_password') }}">
+						<div class="field">
+							<h1>Modifica della password</h1>
+						</div>
+						<div class="field">
+							<label>Nuova password</label>
+							<input type="password" name="new_password" placeholder="Nuova password" required>
+						</div>
+						<div class="field">
+							<label>Conferma nuova password</label>
+							<input type="password" name="confirm_password" placeholder="Conferma la password" required>
+						</div>
+						<button class="ui fluid positive button" type="submit">
+							Modifica la password
+						</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	{% endif %}
+
+	{% if is_granted('ROLE_USER') %}
+		{% if is_granted('ROLE_ADMIN') %}
+			<!-- Modale per aggiunta server -->
+			<div class="ui modal new_server_modal">
+				<i class="close icon"></i>
+				<div class="header">
+					Aggiunta di un nuovo server
+				</div>
+				<div class="content">
+					<form class="ui form" method="POST" action="{{ path('server_new') }}">
+						<div class="field">
+							<label>Nome del server</label>
+							<input type="text" name="name" placeholder="Nome" required>
+						</div>
+						<div class="field">
+							<label>Descrizione</label>
+							<input type="text" name="description" placeholder="Descrizione" required>
+						</div>
+						<div class="field">
+							<label>Icona</label>
+							<input type="text" name="icon" placeholder="Inserire il link dell'immagine" required>
+						</div>
+						<button class="ui fluid positive button" type="submit">
+							Aggiungi
+						</button>
+					</form>
+				</div>
+			</div>
+
+			<!-- Modale per aggiunta ban -->
+			<div class="ui modal new_ban_modal">
+				<i class="close icon"></i>
+				<div class="header">
+					Aggiunta di un nuovo ban
+				</div>
+				<div class="content">
+					<form id="newBanForm" class="ui form" method="POST" action="{{ path('ban_new') }}">
+						<div class="field">
+							<label>Server</label>
+							<select class="ui fluid dropdown" name="server" required>
+								<option value="">Seleziona un server</option>
+								{% for server in serverList %}
+									<option value="{{ server.id }}">{{ server.name }}</option>
+								{% endfor %}
+							</select>
+						</div>
+						<div class="field">
+							<label id="banNicknameLabel">Nome utente</label>
+							<div id="banNickname" class="ui action left icon input">
+								<input type="text" name="nickname" placeholder="Nickname" required>
+								<i class="search icon"></i>
+								<button id="validateNickname" class="ui green button" type="button">Valida</button>
+							</div>
+						</div>
+						<input type="hidden" name="is_name_valid">
+						<div class="ui raised red segment">
+							<h4 class="ui dividing header">Data di inizio</h4>
+							<div class="two fields">
+								<div class="field">
+									<label>Data</label>
+									<input type="date" name="start_date" required>
+								</div>
+								<div class="field">
+									<label>Orario</label>
+									<input type="time" name="start_time" required>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui toggle checkbox is_perma">
+									<input name="is_perma" type="checkbox" name="gift" tabindex="0" class="hidden">
+									<label>Permaban?</label>
+								</div>
+							</div>
+							<div class="field end_date">
+								<h4 class="ui dividing header">Durata</h4>
+								<div class="four fields">
+									<div class="field">
+										<label>Mesi</label>
+										<input type="text" placeholder="Mesi" name="end_date_months">
+									</div>
+									<div class="field">
+										<label>Giorni</label>
+										<input type="text" placeholder="Giorni" name="end_date_days">
+									</div>
+									<div class="field">
+										<label>Ore</label>
+										<input type="text" placeholder="Ore" name="end_date_hours">
+									</div>
+									<div class="field">
+										<label>Minuti</label>
+										<input type="text" placeholder="Minuti" name="end_date_minutes">
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="field">
+							<label>Motivo del ban</label>
+							<input type="text" name="reason" placeholder="Ragione" required>
+						</div>
+						<div class="field">
+							<label>Descrizione del ban</label>
+							<input type="text" name="description" placeholder="Descrizione aggiuntiva del ban">
+						</div>
+						<button class="ui fluid positive button" type="submit">
+							Aggiungi
+						</button>
+					</form>
+				</div>
+			</div>
+		{% endif %}
+	{% endif %}
+
+	<div class="ui top fixed {% if darkMode %}inverted{% endif %} menu">
+		<div class="item" onClick="jaavscript:location.assign('{{ path('homepage') }}')">
+			<img src="/images/logo.webp">
+		</div>
+		{% if is_granted('ROLE_USER') %}
+			{% if is_granted('ROLE_ADMIN') %}
+				<div class="item">
+					<button id="add_ban" class="ui basic small teal button">
+						<i class="icon plus square"></i>
+						Nuovo ban
+					</button>
+				</div>
+				<div class="item">
+					<button id="add_server" class="ui basic small {% if darkMode %}inverted{% endif %} button">
+						<i class="icon plus square"></i>
+						Nuovo server
+					</button>
+				</div>
+				<div class="item">
+					<button id="add_server" class="ui basic small {% if darkMode %}inverted{% endif %} button">
+						<i class="icon plus square"></i>
+						Nuovo utente
+					</button>
+				</div>
+			{% endif %}
+		{% endif %}
+		<div class="right menu">
+			<div class="item">
+				<div id="toggleDarkMode" class="ui toggle checkbox">
+					<input type="checkbox" {% if darkMode %}checked{% endif %}>
+					<label style="{% if darkMode %}color:#fff!important{% endif %}">Dark Mode</label>
+				</div>
+				<script>
+					$("#toggleDarkMode").checkbox({
+						onChange: function(){
+							location.assign('{{ path('toggle_darkmode', {is_dark_mode: not darkMode}) }}');
+						}
+					});
+				</script>
+			</div>
+			<div class="item">
+				{% if is_granted('ROLE_USER') %}
+					<button id="editUser" class="ui blue basic button">
+						<i class="icon user"></i>
+						{{ app.user.username }}
+					</button>
+				{% else %}
+					<div class="ui small blue button" onClick="javascript:location.assign('{{path('app_login')}}')">
+						Admin
+					</div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+		
+	<h1 class="fw_title">ForgottenWorld Banlog</h1>
+	<h3 class="fw_subtitle">Il banlog della community Minecraft di ForgottenWorld. <br> Aggiornato in tempo reale.</h3>
+	
+	{% if successMessage is not null %}
+		<div class="ui positive message">
+			<div class="header">
+				{{ successMessage }}
+			</div>
+		</div>
+	{% endif %}
+	
+	{% if bans|length > 0 %}
+		<div id="searchUser" class="ui fluid search">
+			<div class="ui icon input">
+				<input class="prompt" type="text" placeholder="Cerca un nome utente...">
+				<i class="search icon"></i>
+			</div>
+			<div class="results"></div>
+		</div>
+		<script>
+			$('.ui.search')
+				.search({
+					apiSettings: {
+						url: '{{ path('search_player') }}?q={query}'
+					},
+					fields: {
+						results 		: 'items',
+						title   		: 'name',
+						description     : 'description',
+						image			: 'image'
+					},
+					onSelect(result, response){
+						let filteredUrl = "{{ path('homepage') }}?q=" + result.name;
+						location.assign(filteredUrl);
+					},
+					minCharacters : 3
+				})
+			;
+		</script>
+	{% endif %}
+	
+	<div class="ui center aligned one column grid">
+		<div class="column flex_column">
+			{% if bans|length == 0 %}
+				<div class="ui negative message">
+					<div class="header">
+						Vuoto cosmico
+					</div>
+					<p>Sembra che non ci sia ancora alcun ban. <br>Riprova a tornare più tardi o farti bannare di proposito.</p>
+				</div>
+			{% else %}
+				<table class="ui collapsing {% if darkMode %}inverted{% endif %} selectable striped celled table ban_table">
+					<thead>
+						<tr>
+							<th>Player</th>
+							<th>Server</th>
+							<th>Operatore</th>
+							<th>Motivo</th>
+							<th>Inizio del ban</th>
+							<th>Fine del ban</th>
+							{% if is_granted('ROLE_ADMIN') %}
+								<th>Azioni</th>
+							{% endif %}
+						</tr>
+					</thead>
+					<tbody>
+						{% for ban in bans %}
+							<tr class="clickable-tr" data-idban="{{ban.id}}">
+								<td class="middle aligned">
+									<h5 class="ui header">
+									  <img class="ui image" src="https://crafatar.com/avatars/{{ban.idPlayer.uuid}}.png">
+									  <div style="{% if darkMode %}color:#FFF{% endif %}" class="content">
+										{{ban.idPlayer.name}}
+									  </div>
+									</h5>
+								</td>
+								<td><b>{{ban.idServer.name}}</b></td>
+								<td>{{ban.idOperator.name}}</td>
+								<td>{{ban.reason}}</td>
+								<td><b>{{ban.startDate|date('d/m/Y H:i')}}</b></td>
+								<td>
+									{% if ban.isPerma %}
+										<div class="ui blue horizontal label">Permaban</div>
+									{% else %}
+										<b style="color:#21ba45">{{ ban.endDate|date('d/m/Y H:i') }}</b>
+									{% endif %}
+								</td>
+								{% if is_granted('ROLE_ADMIN') %}
+									<td>
+										{% if (not ban.isPerma and date('now') < ban.endDate) or (ban.isPerma) %}
+										<button class="ui mini red icon button unban_button" data-idban="{{ ban.id }}">
+											<i class="trash icon"></i>
+											Un-ban
+										</button>
+										{% endif %}
+									</td>
+								{% endif %}
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			{% endif %}
+		</div>
+		{% if bans|length > 0 %}
+			<div class="column">
+				<div class="ui tiny {% if darkMode %}inverted{% endif %} basic buttons">
+					<button class="ui icon button">
+						<i class="angle double left icon"></i>
+					</button>
+					<button class="ui icon button">
+						<i class="angle left icon"></i>
+					</button>
+					{% for pageNumber in visiblePages %}
+						<button class="ui button" style="{% if currentPage == pageNumber %}background-color: #2185d0!important; color: #FFF!important{% endif %}" onClick="javascript:location.assign('{{ url('homepage', { page : pageNumber }) }}')">
+							{{ pageNumber }}
+						</button>
+					{% endfor %}
+					<button class="ui icon button">
+						<i class="angle right icon"></i>
+					</button>
+					<button class="ui icon button">
+						<i class="angle double right icon"></i>
+					</button>
+				</div>
+			</div>
+		{% endif %}
+	</div>
+	
+{% endblock %}

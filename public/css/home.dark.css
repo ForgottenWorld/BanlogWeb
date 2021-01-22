@@ -1,0 +1,33 @@
+body {
+	background: #0F0F0F;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+.title {
+	width: 100vw;
+	text-align: center;
+	margin-top: 5rem!important;
+	font-size: 3rem;
+	color: #fff;
+}
+
+.subtitle {
+	width: 100vw;
+	text-align: center;
+	margin-top: 1rem!important;
+	font-size: 1.5rem;
+	font-weight: 300;
+	color: #fff;
+}
+
+.flex_column {
+	display: flex!important;
+	justify-content: center;
+}
+
+.ban_table {
+	margin-top: 3rem!important;
+}

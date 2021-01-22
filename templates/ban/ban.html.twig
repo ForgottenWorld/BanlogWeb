@@ -1,0 +1,334 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+	{{ parent() }}
+	
+	<link rel="stylesheet" href="{{path('homepage')}}glide/css/glide.core.css">
+	<link rel="stylesheet" href="{{path('homepage')}}glide/css/glide.theme.css">
+	<style>
+		{% if darkMode %}
+			body {
+				background: #0F0F0F;
+			}
+			
+			.fw_title {
+				color: #fff;
+			}
+			
+			.fw_subtitle {
+				color: #fff;
+			}
+		{% else %}
+			body {
+				background: #FFF;
+			}
+			
+			.fw_subtitle {
+				color: #7d7c83;
+			}
+		{% endif %}
+		
+		html {
+			height: 100vh!important;
+		}
+		
+		body {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			height: 100vh!important;
+		}
+
+		.fw_title {
+			text-align: center;
+			font-size: 3rem;
+		}
+
+		.fw_subtitle {
+			text-align: center;
+			margin-top: 0!important;
+			font-size: 1.5rem;
+			font-weight: 300;
+		}
+
+		.flex_column {
+			display: flex!important;
+			justify-content: center;
+		}
+		
+		.main_segment {
+		}
+
+		.player_info_grid {
+			margin-top: 5em!important;
+		}
+
+	</style>
+{% endblock %}
+
+{% block javascripts %}
+	{{parent()}}
+	
+	<script src="{{path('homepage')}}glide/js/glide.js"></script>
+	<script>
+		$(document).ready(function(){
+	
+			$("#view_images").click(function(){
+				$(".view_images_modal").modal('show');
+				
+				const config = {
+					type: 'carousel',
+					perView: 1
+				};
+				new Glide('.glide', config).mount()
+			});
+			
+			$("#upload_images").click(function(){
+				$(".upload_images_modal").modal('show');
+			});
+
+		});
+		
+		var currentImage = {
+			idimage: null
+		};
+	</script>
+{% endblock %}
+
+{% block body %}
+				
+		{% if is_granted('ROLE_ADMIN') %}
+			<div class="ui basic modal delete_image_modal">
+				<div class="ui icon header">
+					<i class="trash icon"></i>
+					<span class="delete_info"></span>
+				</div>
+				<div class="content">
+					<p>Sei sicuro di voler eliminare definitivamente dal Ban Log questa Immagine relativa al Ban?</p>
+				</div>
+				<div class="actions">
+					<div class="ui red basic cancel inverted button delete_image_cancel">
+						<i class="remove icon"></i>
+						Annulla
+					</div>
+					<a href="" class="ui red ok inverted button delete_image_submit">
+						<i class="trash icon"></i>
+						Elimina
+					</a>
+				</div>
+			</div>
+		
+			<div class="ui {% if darkMode %}inverted{% endif %} modal view_images_modal">
+				<i class="close icon"></i>
+				<div class="header">
+					Visualizzazione immagini
+				</div>
+				<div class="content">
+					<div class="ui fluid raised segment">
+						{% if ban.images|length == 0 %}
+							Nessuna immagine presente
+						{% else %}
+							<div class="glide">
+								<div class="glide">
+									<div class="glide__track" data-glide-el="track">
+										<ul class="glide__slides">
+											{% for image in ban.images %}
+												<li class="glide__slide">
+													{% if(is_granted('ROLE_ADMIN')) %}
+														<a href="" class="ui mini icon red button delete_image_button" data-idimage="{{image.id}}" data-inverted="" data-tooltip="Elimina Immagine" data-position="right center">
+															<i class="trash icon"></i>
+														</a>
+													{% endif %}
+													
+													<img style="width:100%; height: 60vh" src="{{ url('homepage') }}uploads/bans/{{ image.name }}"></img>
+													
+												</li>
+											{% endfor %}	
+											<script>
+												$(document).on('click', '.delete_image_button', function( event ){
+													event.preventDefault();
+												
+													var idImage = $(this).data('idimage');
+													
+													currentImage.idimage = idImage;
+													
+													var deleteInfo = 'Elimina Immagine';
+													$(".delete_info").html(deleteInfo);
+													
+													$('.delete_image_modal')
+														.modal('setting', 'closable', false)
+														.modal('show')
+													;
+												});
+												
+												$(document).on('click', '.delete_image_submit', function( event ){
+													event.preventDefault();
+													var path = "{{ path('ban_deleteImageBan') }}" + '?id=' + currentImage.idimage;
+													location.assign( path );
+												});
+												
+												$(document).on('click', '.delete_image_cancel', function( event ){
+													$(".view_images_modal").modal('show');
+				
+													const config = {
+														type: 'carousel',
+														perView: 1
+													};
+													new Glide('.glide', config).mount()
+												});
+											</script>
+										</ul>
+									</div>
+									<div class="glide__arrows" data-glide-el="controls">
+										<button class="glide__arrow glide__arrow--left" data-glide-dir="<">Indietro</button>
+										<button class="glide__arrow glide__arrow--right" data-glide-dir=">">Avanti</button>
+									</div>
+								</div>
+							</div>
+						{% endif %}
+					</div>
+				</div>
+			</div>
+		{% endif %}
+	
+		{% if is_granted('ROLE_ADMIN') %}
+			<!-- Modale per caricamento immagine -->
+			<div class="ui {% if darkMode %}inverted{% endif %} modal upload_images_modal">
+				<i class="close icon"></i>
+				<div class="header">
+					Carica un'immagine
+				</div>
+				<div class="content">
+					<div class="ui basic segment upload_image_segment">
+						<div class="ui dimmer">
+							<div class="ui indeterminate text loader">Caricamento immagine in corso...</div>
+						</div>
+						<center>
+							<form id="upload_image_form" class="box" method="post" action="{{ path('ban_addImageToBan', { id: ban.id } ) }}" enctype="multipart/form-data">
+								<div class="ui action input">
+									<input id="uploaded_file" type="file" name="fileToUpload" placeholder="Search..." required>
+									<button class="ui teal icon button">
+										<i class="cloud upload icon"></i>
+									</button>
+								</div>
+							</form>
+							<script>
+								$("#upload_image_form").on('submit', function(e){
+									e.preventDefault();
+									//Getting form into Jquery Wrapper Instance to enable JQuery Functions on form                    
+									var form = $(this);
+									//Serializing all For Input Values (not files!) in an Array Collection so that we can iterate this collection later.
+									var params = form.serializeArray();
+									//Getting Files Collection
+									var files = $("#uploaded_file")[0].files;
+									//Declaring new Form Data Instance  
+									var formData = new FormData();
+									//Looping through uploaded files collection in case there is a Multi File Upload. This also works for single i.e simply remove MULTIPLE attribute from file control in HTML.  
+									for (var i = 0; i < files.length; i++) {
+										formData.append(files[i].name, files[i]);
+									}
+									//Now Looping the parameters for all form input fields and assigning them as Name Value pairs. 
+									$(params).each(function (index, element) {
+										formData.append(element.name, element.value);
+									});
+									// Send the Ajax call
+									$.ajax({
+										type: form.attr("method"),
+										url: form.attr("action"),
+										data: formData,
+										dataType: 'json',
+										contentType: false,
+										cache: false,
+										processData:false,
+										async: true,
+										beforeSend: function(){
+											$('.upload_image_segment').dimmer('show');
+										},
+										success: function( response ){
+											$('.upload_image_segment').dimmer('hide');
+											location.reload();
+										},
+										error: function( error ){
+											console.log( error['responseText'] );
+										}
+									});
+								});
+							</script>
+						</center>
+					</div>
+				</div>
+			</div>
+		{% endif %}
+		
+		<div class="ui one column centered grid">
+			<div class="column">
+				<button id="add_ban" class="ui basic {% if darkMode %}inverted{% else %}gray{% endif %} button" onClick="javascript:location.assign('{{ url('homepage') }}')">
+					<i class="icon arrow circle left"></i>
+					Indietro
+				</button>
+				<button id="view_images" class="ui basic teal button" onClick="">
+					<i class="icon lock"></i>
+					Visualizza immagini
+				</button>
+				{% if is_granted('ROLE_ADMIN') %}
+					<button id="upload_images" class="ui basic green button">
+						<i class="icon cloud upload"></i>
+						Carica immagine
+					</button>
+				{% endif %}
+			</div>
+			<div class="column">
+				<div class="ui {% if darkMode %}inverted{% endif %} stacked segment main_segment">
+					{% if ban.isPerma %}
+						<a class="ui green ribbon label">Ban in corso</a>
+					{% else %}
+						{% if (not ban.isPerma and date('now') < ban.endDate) or (ban.isPerma) %}
+							<a class="ui green ribbon label">Ban in corso</a>
+						{% else %}
+							<a class="ui red ribbon label">Ban archiviato</a>
+						{% endif %}
+					{% endif %}
+					<h1 class="fw_title">{{ ban.idPlayer.name }}</h1>
+					<h3 class="fw_subtitle"><b>UUID:</b> {{ ban.idPlayer.uuid }}</h3>
+					<div class="ui two column middle aligned grid player_info_grid">
+						<div class="column" style="display:flex; justify-content: center; align-items: center">
+							<img class="ui image" src="https://crafatar.com/renders/body/{{ban.idPlayer.uuid}}.png?scale=4">
+						</div>
+						<div class="column">
+							<table class="ui definition table">
+								<tbody>
+									<tr>
+										<td>Data di inizio</td>
+										<td>{{ ban.startDate|date('d/m/Y H:i') }}</td>
+									</tr>
+									<tr>
+										<td>Data di fine</td>
+										<td>
+											{% if ban.isPerma %}
+												<div class="ui blue horizontal label">Permaban</div>
+											{% else %}
+												<b style="color:#21ba45">{{ ban.endDate|date('d/m/Y H:i') }}</b>
+											{% endif %}
+										</td>
+									</tr>
+									<tr>
+										<td>Motivo</td>
+										<td>{{ ban.reason }}</td>
+									</tr>
+									<tr>
+										<td>Descrizione</td>
+										<td>{{ ban.description }}</td>
+									</tr>
+									<tr>
+										<td>Operatore</td>
+										<td>{{ ban.idOperator.name }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+{% endblock %}

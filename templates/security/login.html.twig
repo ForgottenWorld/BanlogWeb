@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accedi{% endblock %}
+
+{% block stylesheets %}
+	{{parent()}}
+	
+	<style>
+		html, body {
+			height: 100vh!important;
+		}
+		
+		body {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-direction: column;
+		}
+		
+		.title {
+			min-width: 30vw;
+			text-align: center;
+			font-size: 2rem;
+			margin: 0;
+		}
+		
+		.subtitle {
+			min-width: 30vw;
+			text-align: center;
+			margin-top: .2rem!important;
+			font-size: 1.3rem;
+			font-weight: 300;
+			color: #7d7c83;
+		}
+		
+		.login_form {
+			min-width: 30vw;
+		}
+	</style>
+
+{% endblock %}
+
+{% block body %}
+	
+	<h2 class="title">Pannello di amministrazione</h2>
+	<h4 class="subtitle">Accedi al pannello per poter sbloccare le <br> funzionalità da amministratore</h4>
+	
+	<div class="ui compact segment">
+	
+		<form class="ui form login_form" method="post">
+			{% if error %}
+				<div class="ui negative message">
+					<div class="header">
+						{{ error.messageKey|trans(error.messageData, 'security') }}
+					</div>
+				</div>
+			{% endif %}
+
+			{% if app.user %}
+				<div class="ui positive message">
+					<div class="header">
+						Sei già loggato.
+					</div>
+					<p>Hai già effettuato l'accesso come {{ app.user.username }}, <a href="{{ path('app_logout') }}">Clicca qui per fare il logout</a> </p>
+				</div>
+			{% endif %}
+
+			<div class="field">
+				<label>Nome utente</label>
+				<input type="text" value="{{ last_username }}" name="username" id="inputUsername" placeholder="Nome utente" required>
+			</div>
+			<div class="field">
+				<label>Password</label>
+				<input type="password" name="password" id="inputPassword" placeholder="Password" required>
+			</div>
+			<input type="hidden" name="_csrf_token"
+				   value="{{ csrf_token('authenticate') }}"
+			>
+			<div class="ui checkbox">
+				<input type="checkbox" name="_remember_me">
+				<label>Ricordami</label>
+			</div>
+			
+			<br><br>
+
+			<button class="ui fluid blue button" type="submit">Accedi</button>
+		</form>
+	</div>
+{% endblock %}
