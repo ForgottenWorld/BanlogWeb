@@ -10,6 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use App\Entity\User;
 
 class SecurityController extends AbstractController
 {
@@ -35,6 +36,8 @@ class SecurityController extends AbstractController
      */
     public function changePassword(Request $request, AuthenticationUtils $authenticationUtils, UserPasswordEncoderInterface $passwordEncoder, UrlGeneratorInterface $urlGenerator): Response
     {
+		$this->denyAccessUnlessGranted('ROLE_USER');
+		
 		$entityManager = $this -> getDoctrine() -> getManager();
 		$user = $this->getUser();
 		
@@ -49,6 +52,34 @@ class SecurityController extends AbstractController
 		$entityManager -> flush();
 
         return new RedirectResponse($urlGenerator->generate('homepage', array('successMessage' => "Password modificata con successo")));
+    }
+	
+	/**
+     * @Route("/newUser", name="app_new_user")
+     */
+    public function newUser(Request $request, AuthenticationUtils $authenticationUtils, UserPasswordEncoderInterface $passwordEncoder, UrlGeneratorInterface $urlGenerator): Response
+    {
+		$this->denyAccessUnlessGranted('ROLE_ADMIN');
+		
+		$entityManager = $this -> getDoctrine() -> getManager();
+		$user = $this->getUser();
+		
+		$username = $request -> get('username');
+		$password = $request -> get('password');
+		$role 	  = $request -> get('role');
+		
+		$user = new User();
+		$user -> setUsername($username);
+		$user -> setPassword($passwordEncoder->encodePassword(
+			$user,
+			$password
+		));
+		$user -> setRoles([$role]);
+		
+		$entityManager -> persist($user);
+		$entityManager -> flush();
+
+        return new RedirectResponse($urlGenerator->generate('homepage', array('successMessage' => "Utente aggiunto con successo")));
     }
 
     /**

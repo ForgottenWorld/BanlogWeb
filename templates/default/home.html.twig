@@ -144,6 +144,10 @@
 				$(".new_server_modal").modal('show');
 			});
 			
+			$("#add_user").click(function(){
+				$(".add_user_modal").modal('show');
+			});
+			
 			$("#editUser").click(function(){
 				$(".edit_user_modal").modal('show');
 			});
@@ -181,6 +185,39 @@
 
 {% block body %}
 
+	{% if is_granted('ROLE_ADMIN') %}
+		<!-- Modale per modifica profilo -->
+		<div class="ui modal add_user_modal">
+			<i class="close icon"></i>
+			<div class="header">
+				Aggiunta di un utente
+			</div>
+			<div class="content">
+				<form id="newUserForm" class="ui form" method="POST" action="{{ path('app_new_user') }}">
+					<div class="field">
+						<label>Nome utente</label>
+						<input type="text" name="username" placeholder="Inserisci un nome utente" required>
+					</div>
+					<div class="field">
+						<label>Password</label>
+						<input type="password" name="password" placeholder="Inserisci una password" required>
+					</div>
+					<div class="field">
+						<label>Ruolo</label>
+						<select class="ui basic dropdown" name="role" required>
+							<option value="ROLE_USER">Utente</option>
+							<option value="ROLE_MOD">Moderatore</option>
+							<option value="ROLE_ADMIN">Amministratore</option>
+						</select>
+					</div>
+					<button class="ui fluid positive button" type="submit">
+						Aggiungi utente
+					</button>
+				</form>
+			</div>
+		</div>
+	{% endif %}
+
 	{% if is_granted('ROLE_USER') %}
 		<!-- Modale per modifica profilo -->
 		<div class="ui {% if darkMode %}inverted{% endif %} modal edit_user_modal">
@@ -206,6 +243,15 @@
 							Modifica la password
 						</button>
 					</form>
+				</div>
+				<div class="ui raised segment">
+					<div class="field">
+						<h1>Logout</h1>
+						<button class="ui fluid negative button" type="button" onClick="javascript:location.assign('{{path('app_logout')}}')">
+							Clicca per effettuare il logout
+						</button>
+					</div>
+					
 				</div>
 			</div>
 		</div>
@@ -342,7 +388,7 @@
 					</button>
 				</div>
 				<div class="item">
-					<button id="add_server" class="ui basic small {% if darkMode %}inverted{% endif %} button">
+					<button id="add_user" class="ui basic small {% if darkMode %}inverted{% endif %} button">
 						<i class="icon plus square"></i>
 						Nuovo utente
 					</button>
